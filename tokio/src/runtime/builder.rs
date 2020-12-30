@@ -41,6 +41,9 @@ pub struct Builder {
     /// Runtime type
     kind: Kind,
 
+    /// Whether or not to enable blocking threads and spawn_blocking
+    enable_blocking: bool,
+
     /// Whether or not to enable the I/O driver
     enable_io: bool,
 
@@ -103,6 +106,9 @@ impl Builder {
     pub(crate) fn new(kind: Kind) -> Builder {
         Builder {
             kind,
+
+            // Blocking default to "on"
+            enable_blocking: true,
 
             // I/O defaults to "off"
             enable_io: false,
@@ -209,21 +215,42 @@ impl Builder {
         self
     }
 
-    /// Specifies limit for threads spawned by the Runtime used for blocking operations.
+    /// Enable or disable support for spawning of blocking operations.
     ///
+    /// The default value is `true` (enabled).
     ///
-    /// Similarly to the `worker_threads`, this number should be between 1 and 32,768.
-    ///
-    /// The default value is 512.
-    ///
-    /// Otherwise as `worker_threads` are always active, it limits additional threads (e.g. for
-    /// blocking annotations).
+    /// **Warning: Setting this to `false` (disabled) will result in runtime
+    /// panics as described below.** Doing so is only possibly useful as
+    /// _either_ a temporary way to find calls to `spawn_blocking` or as a
+    /// testing/runtime assertion that an application does not use
+    /// `spawn_blocking` either directly or indirectly via tokio or other
+    /// libraries.
     ///
     /// # Panic
     ///
-    /// This will panic if `val` is not larger than `0`.
+    /// If set to `false` (disabled), any calls to [`Runtime::spawn_blocking`]
+    /// or [`task::block_in_place`](crate::task::block_in_place), including
+    /// internal use such as in `tokio::fs` or via other libraries, will result
+    /// in a panic.
+    pub fn enable_blocking(&mut self, val: bool) -> &mut Self {
+        self.enable_blocking = val;
+        self
+    }
+
+    /// Specifies limit for threads spawned by the Runtime used for blocking operations.
+    ///
+    /// Blocking operations include use of [`Runtime::spawn_blocking`] and
+    /// [`task::block_in_place`](crate::task::block_in_place).  Similarly to
+    /// the `worker_threads`, this number should be between 1 and 32,768. As
+    /// `worker_threads` are always active, this limits additional threads.
+    ///
+    /// The default value is 512.
+    ///
+    /// # Panic
+    ///
+    /// This will panic on `build`, if set to zero (`0`) and blocking remains
+    /// enabled (see [`Builder::enable_blocking`]).
     pub fn max_blocking_threads(&mut self, val: usize) -> &mut Self {
-        assert!(val > 0, "Max blocking threads cannot be set to 0");
         self.max_blocking_threads = val;
         self
     }
@@ -369,7 +396,16 @@ impl Builder {
     ///     println!("Hello from the Tokio runtime");
     /// });
     /// ```
+    ///
+    /// # Panic
+    ///
+    /// May panic if invariants described in builder methods are not met.
     pub fn build(&mut self) -> io::Result<Runtime> {
+        assert!(
+            !self.enable_blocking || self.max_blocking_threads > 0,
+            "Max blocking threads cannot be set to 0, \
+             unless blocking is also disabled"
+        );
         match &self.kind {
             Kind::CurrentThread => self.build_basic_runtime(),
             #[cfg(feature = "rt-multi-thread")]
@@ -426,6 +462,10 @@ impl Builder {
         // Blocking pool
         let blocking_pool = blocking::create_blocking_pool(self, self.max_blocking_threads);
         let blocking_spawner = blocking_pool.spawner().clone();
+
+        if !self.enable_blocking {
+            blocking_pool.disable_spawning()
+        }
 
         Ok(Runtime {
             kind: Kind::CurrentThread(scheduler),
@@ -503,7 +543,7 @@ cfg_rt_multi_thread! {
             let (scheduler, launch) = ThreadPool::new(core_threads, Parker::new(driver));
             let spawner = Spawner::ThreadPool(scheduler.spawner().clone());
 
-            // Create the blocking pool
+            // Create the blocking pool with the sum of blocking and core threads
             let blocking_pool = blocking::create_blocking_pool(self, self.max_blocking_threads + core_threads);
             let blocking_spawner = blocking_pool.spawner().clone();
 
@@ -517,9 +557,16 @@ cfg_rt_multi_thread! {
                 blocking_spawner,
             };
 
-            // Spawn the thread pool workers
+            // Spawn the thread pool workers. These run as core threads taken
+            // from the blocking pool.
             let _enter = crate::runtime::context::enter(handle.clone());
             launch.launch();
+
+            if !self.enable_blocking {
+                // Note this must be defered until after workers have been
+                // spawned via `launch` above.
+                blocking_pool.disable_spawning();
+            }
 
             Ok(Runtime {
                 kind: Kind::ThreadPool(scheduler),

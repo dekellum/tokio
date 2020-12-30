@@ -391,6 +391,33 @@ fn max_blocking_threads_set_to_zero() {
         .unwrap();
 }
 
+// Testing this does not panic
+#[test]
+fn max_blocking_disabled_threads_set_to_zero() {
+    let _rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_blocking(false)
+        .max_blocking_threads(0)
+        .build()
+        .unwrap();
+}
+
+#[test]
+#[should_panic]
+fn blocking_disabled_then_spawn_blocking() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_blocking(false)
+        .build()
+        .unwrap();
+
+    rt.block_on(async {
+        // Call to spawn_blocking should panic...
+        let _r = tokio::task::spawn_blocking(|| {
+            eprintln!("spawning should be disabled!!!");
+        })
+        .await;
+    });
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hang_on_shutdown() {
     let (sync_tx, sync_rx) = std::sync::mpsc::channel::<()>();

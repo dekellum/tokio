@@ -55,6 +55,7 @@ struct Shared {
     num_th: usize,
     num_idle: u32,
     num_notify: u32,
+    disabled: bool,
     shutdown: bool,
     shutdown_tx: Option<shutdown::Sender>,
     /// Prior to shutdown, we clean up JoinHandles by having each timed-out
@@ -112,6 +113,7 @@ impl BlockingPool {
                         num_th: 0,
                         num_idle: 0,
                         num_notify: 0,
+                        disabled: false,
                         shutdown: false,
                         shutdown_tx: Some(shutdown_tx),
                         last_exiting_thread: None,
@@ -167,6 +169,11 @@ impl BlockingPool {
             }
         }
     }
+
+    pub(crate) fn disable_spawning(&self) {
+        let mut shared = self.spawner.inner.shared.lock();
+        shared.disabled = true;
+    }
 }
 
 impl Drop for BlockingPool {
@@ -196,11 +203,18 @@ impl Spawner {
                 return Err(());
             }
 
+            if shared.disabled {
+                panic!(
+                    "`spawn_blocking` or `block_in_place` called, \
+                     but blocking was disabled via \
+                     `runtime::Builder::enable_blocking(false)`!"
+                );
+            }
+
             shared.queue.push_back(task);
 
             if shared.num_idle == 0 {
                 // No threads are able to process the task.
-
                 if shared.num_th == self.inner.thread_cap {
                     // At max number of threads
                     None
