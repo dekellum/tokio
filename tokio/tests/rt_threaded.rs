@@ -418,6 +418,35 @@ fn blocking_disabled_then_spawn_blocking() {
     });
 }
 
+#[test]
+#[should_panic]
+fn blocking_disabled_then_block_in_place() {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .enable_time()
+        .enable_blocking(false)
+        .max_blocking_threads(0)
+        .build()
+        .unwrap();
+
+    let (tx, rx) = mpsc::channel();
+
+    rt.block_on(async move {
+        tokio::task::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            tx.send(()).unwrap();
+        });
+        let sh = tokio::task::spawn(async move {
+            // Call to block_in_place should panic...
+            tokio::task::block_in_place(|| {
+                rx.recv().ok();
+            })
+        });
+        sh.await
+    })
+    .unwrap(); // JoinError::Panic
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hang_on_shutdown() {
     let (sync_tx, sync_rx) = std::sync::mpsc::channel::<()>();
