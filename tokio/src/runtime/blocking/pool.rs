@@ -97,6 +97,16 @@ where
     rt.blocking_spawner.spawn(task, &rt)
 }
 
+/// Run the provided function on the executor
+pub(crate) fn spawn_on_pool<F, R>(func: F) -> JoinHandle<R>
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    let rt = context::current().expect("not currently running on the Tokio runtime.");
+    rt.spawn_on_pool(func)
+}
+
 // ===== impl BlockingPool =====
 
 impl BlockingPool {

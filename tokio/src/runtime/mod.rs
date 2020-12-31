@@ -187,7 +187,7 @@ cfg_rt! {
 
     mod blocking;
     use blocking::BlockingPool;
-    pub(crate) use blocking::spawn_blocking;
+    pub(crate) use blocking::{spawn_blocking, spawn_on_pool};
 
     mod builder;
     pub use self::builder::Builder;

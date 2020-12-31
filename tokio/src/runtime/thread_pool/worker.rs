@@ -253,7 +253,7 @@ where
         // Once the blocking task is done executing, we will attempt to
         // steal the core back.
         let worker = cx.worker.clone();
-        runtime::spawn_blocking(move || run(worker));
+        runtime::spawn_on_pool(move || run(worker));
     });
 
     if had_entered {
@@ -276,7 +276,7 @@ const GLOBAL_POLL_INTERVAL: u8 = 61;
 impl Launch {
     pub(crate) fn launch(mut self) {
         for worker in self.0.drain(..) {
-            runtime::spawn_blocking(move || run(worker));
+            runtime::spawn_on_pool(move || run(worker));
         }
     }
 }
