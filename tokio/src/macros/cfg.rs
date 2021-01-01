@@ -241,6 +241,26 @@ macro_rules! cfg_not_signal_internal {
     }
 }
 
+macro_rules! cfg_spawn_blocking {
+    ($($item:item)*) => {
+        $(
+            #[cfg(all(feature = "rt", feature = "spawn-blocking"))]
+            #[cfg_attr(docsrs, doc(cfg(all(feature = "rt", feature = "spawn-blocking"))))]
+            $item
+        )*
+    }
+}
+
+macro_rules! cfg_spawn_blocking_net {
+    ($($item:item)*) => {
+        $(
+            #[cfg(all(feature = "rt", feature = "spawn-blocking", feature = "net"))]
+            #[cfg_attr(docsrs, doc(cfg(all(feature = "rt", feature = "spawn-blocking", feature = "net"))))]
+            $item
+        )*
+    }
+}
+
 macro_rules! cfg_sync {
     ($($item:item)*) => {
         $(

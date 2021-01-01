@@ -144,7 +144,7 @@ impl sealed::ToSocketAddrsPriv for &[SocketAddr] {
     }
 }
 
-cfg_net! {
+cfg_spawn_blocking_net! {
     // ===== impl str =====
 
     impl ToSocketAddrs for str {}
@@ -257,7 +257,7 @@ pub(crate) mod sealed {
     #[allow(missing_debug_implementations)]
     pub struct Internal;
 
-    cfg_net! {
+    cfg_spawn_blocking_net! {
         use crate::blocking::JoinHandle;
 
         use std::option;

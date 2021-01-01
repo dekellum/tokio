@@ -4,7 +4,15 @@
 //! compilation.
 
 mod pool;
-pub(crate) use pool::{spawn_blocking, spawn_on_pool, BlockingPool, Spawner};
+pub(crate) use pool::{BlockingPool, Spawner};
+
+cfg_rt_multi_thread! {
+    pub(crate) use pool::spawn_on_pool;
+}
+
+cfg_spawn_blocking! {
+    pub(crate) use pool::spawn_blocking;
+}
 
 mod schedule;
 mod shutdown;

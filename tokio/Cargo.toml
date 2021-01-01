@@ -24,8 +24,9 @@ categories = ["asynchronous", "network-programming"]
 keywords = ["io", "async", "non-blocking", "futures"]
 
 [features]
-# Include nothing by default
-default = []
+# Include only features that should be default enabled for backward
+# compatibility
+default = ["spawn-blocking"]
 
 # enable everything
 full = [
@@ -43,10 +44,10 @@ full = [
   "time",
 ]
 
-fs = []
+fs = ["spawn-blocking"]
 io-util = ["memchr", "bytes"]
 # stdin, stdout, stderr
-io-std = []
+io-std = ["spawn-blocking"]
 macros = ["tokio-macros"]
 net = [
   "libc",
@@ -81,6 +82,7 @@ signal = [
   "signal-hook-registry",
   "winapi/consoleapi",
 ]
+spawn-blocking = []
 sync = []
 test-util = []
 time = []

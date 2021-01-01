@@ -168,6 +168,8 @@ impl Handle {
     /// # }
     #[inline]
     #[cfg_attr(tokio_track_caller, track_caller)]
+    #[cfg(all(feature = "rt", feature = "spawn-blocking"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "rt", feature = "spawn-blocking"))))]
     pub fn spawn_blocking<F, R>(&self, func: F) -> JoinHandle<R>
     where
         F: FnOnce() -> R + Send + 'static,

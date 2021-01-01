@@ -187,7 +187,6 @@ cfg_rt! {
 
     mod blocking;
     use blocking::BlockingPool;
-    pub(crate) use blocking::{spawn_blocking, spawn_on_pool};
 
     mod builder;
     pub use self::builder::Builder;
@@ -204,9 +203,15 @@ cfg_rt! {
     use self::spawner::Spawner;
 }
 
+cfg_spawn_blocking! {
+    pub(crate) use blocking::spawn_blocking;
+}
+
 cfg_rt_multi_thread! {
     mod park;
     use park::Parker;
+
+    pub(crate) use blocking::spawn_on_pool;
 }
 
 cfg_rt_multi_thread! {
@@ -394,6 +399,8 @@ cfg_rt! {
         /// });
         /// # }
         #[cfg_attr(tokio_track_caller, track_caller)]
+        #[cfg(all(feature = "rt", feature = "spawn-blocking"))]
+        #[cfg_attr(docsrs, doc(cfg(all(feature = "rt", feature = "spawn-blocking"))))]
         pub fn spawn_blocking<F, R>(&self, func: F) -> JoinHandle<R>
         where
             F: FnOnce() -> R + Send + 'static,

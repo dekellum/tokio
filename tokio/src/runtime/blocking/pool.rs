@@ -4,7 +4,11 @@ use crate::loom::sync::{Arc, Condvar, Mutex};
 use crate::loom::thread;
 use crate::runtime::blocking::schedule::NoopSchedule;
 use crate::runtime::blocking::shutdown;
-use crate::runtime::blocking::task::BlockingTask;
+
+cfg_spawn_blocking! {
+    use crate::runtime::blocking::task::BlockingTask;
+}
+
 use crate::runtime::builder::ThreadNameFn;
 use crate::runtime::context;
 use crate::runtime::task::{self, JoinHandle};
@@ -75,36 +79,40 @@ type Task = task::Notified<NoopSchedule>;
 
 const KEEP_ALIVE: Duration = Duration::from_secs(10);
 
-/// Run the provided function on an executor dedicated to blocking operations.
-pub(crate) fn spawn_blocking<F, R>(func: F) -> JoinHandle<R>
-where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
-{
-    let rt = context::current().expect("not currently running on the Tokio runtime.");
-    rt.spawn_blocking(func)
+cfg_spawn_blocking! {
+    /// Run the provided function on an executor dedicated to blocking operations.
+    pub(crate) fn spawn_blocking<F, R>(func: F) -> JoinHandle<R>
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        let rt = context::current().expect("not currently running on the Tokio runtime.");
+        rt.spawn_blocking(func)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn try_spawn_blocking<F, R>(func: F) -> Result<(), ()>
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: Send + 'static,
+    {
+        let rt = context::current().expect("not currently running on the Tokio runtime.");
+
+        let (task, _handle) = task::joinable(BlockingTask::new(func));
+        rt.blocking_spawner.spawn(task, &rt)
+    }
 }
 
-#[allow(dead_code)]
-pub(crate) fn try_spawn_blocking<F, R>(func: F) -> Result<(), ()>
-where
-    F: FnOnce() -> R + Send + 'static,
+cfg_rt_multi_thread! {
+    /// Run the provided function on the executor
+    pub(crate) fn spawn_on_pool<F, R>(func: F) -> JoinHandle<R>
+        where
+        F: FnOnce() -> R + Send + 'static,
     R: Send + 'static,
-{
-    let rt = context::current().expect("not currently running on the Tokio runtime.");
-
-    let (task, _handle) = task::joinable(BlockingTask::new(func));
-    rt.blocking_spawner.spawn(task, &rt)
-}
-
-/// Run the provided function on the executor
-pub(crate) fn spawn_on_pool<F, R>(func: F) -> JoinHandle<R>
-where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
-{
-    let rt = context::current().expect("not currently running on the Tokio runtime.");
-    rt.spawn_on_pool(func)
+    {
+        let rt = context::current().expect("not currently running on the Tokio runtime.");
+        rt.spawn_on_pool(func)
+    }
 }
 
 // ===== impl BlockingPool =====

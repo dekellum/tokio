@@ -1,4 +1,4 @@
-cfg_rt! {
+cfg_spawn_blocking! {
     pub(crate) use crate::runtime::spawn_blocking;
     pub(crate) use crate::task::JoinHandle;
 }
@@ -8,16 +8,6 @@ cfg_not_rt! {
     use std::future::Future;
     use std::pin::Pin;
     use std::task::{Context, Poll};
-
-    pub(crate) fn spawn_blocking<F, R>(_f: F) -> JoinHandle<R>
-    where
-        F: FnOnce() -> R + Send + 'static,
-        R: Send + 'static,
-    {
-        assert_send_sync::<JoinHandle<std::cell::Cell<()>>>();
-        panic!("requires the `rt` Tokio feature flag")
-
-    }
 
     pub(crate) struct JoinHandle<R> {
         _p: std::marker::PhantomData<R>,
@@ -42,7 +32,19 @@ cfg_not_rt! {
             fmt.debug_struct("JoinHandle").finish()
         }
     }
+}
 
-    fn assert_send_sync<T: Send + Sync>() {
-    }
+#[cfg(all(not(feature = "rt"), feature = "spawn-blocking"))]
+#[allow(unused)]
+pub(crate) fn spawn_blocking<F, R>(_f: F) -> JoinHandle<R>
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    assert_send_sync::<JoinHandle<std::cell::Cell<()>>>();
+    panic!("requires the `rt` and `spawn-blocking` Tokio feature flags")
+}
+
+#[cfg(all(not(feature = "rt"), feature = "spawn-blocking"))]
+fn assert_send_sync<T: Send + Sync>() {
 }

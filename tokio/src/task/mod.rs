@@ -219,7 +219,6 @@ cfg_rt! {
     pub use crate::runtime::task::{JoinError, JoinHandle};
 
     mod blocking;
-    pub use blocking::spawn_blocking;
 
     mod spawn;
     pub use spawn::spawn;
@@ -237,3 +236,8 @@ cfg_rt! {
     mod task_local;
     pub use task_local::LocalKey;
 }
+
+cfg_spawn_blocking! {
+    pub use blocking::spawn_blocking;
+}
+

@@ -51,7 +51,7 @@ cfg_rt_multi_thread! {
     }
 }
 
-cfg_rt! {
+cfg_spawn_blocking! {
     /// Runs the provided closure on a thread where blocking is acceptable.
     ///
     /// In general, issuing a blocking call or performing a lot of compute in a
