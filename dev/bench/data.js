@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1609967830866,
+  "lastUpdate": 1609967845346,
   "repoUrl": "https://github.com/dekellum/tokio",
   "entries": {
     "sync_rwlock": [
@@ -103,6 +103,62 @@ window.BENCHMARK_DATA = {
             "name": "yield_many",
             "value": 21193608,
             "range": "± 2730409",
+            "unit": "ns/iter"
+          }
+        ]
+      }
+    ],
+    "sync_semaphore": [
+      {
+        "commit": {
+          "author": {
+            "email": "liaoymxsdl@sina.com",
+            "name": "Rust大闸蟹",
+            "username": "baoyachi"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e42317b072c5240fe190c0a8708cd24bb4a4eb08",
+          "message": "chore: remove macro_rules semicolon (#3381)\n\nfix build warning",
+          "timestamp": "2021-01-06T15:46:37+09:00",
+          "tree_id": "afddb1695c354a4f98712745b23363ef96774bc8",
+          "url": "https://github.com/dekellum/tokio/commit/e42317b072c5240fe190c0a8708cd24bb4a4eb08"
+        },
+        "date": 1609967844406,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "contended_concurrent_multi",
+            "value": 17040,
+            "range": "± 8781",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "contended_concurrent_single",
+            "value": 1097,
+            "range": "± 455",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "uncontended",
+            "value": 656,
+            "range": "± 111",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "uncontended_concurrent_multi",
+            "value": 17341,
+            "range": "± 6519",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "uncontended_concurrent_single",
+            "value": 1100,
+            "range": "± 792",
             "unit": "ns/iter"
           }
         ]
